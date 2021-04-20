@@ -1,0 +1,47 @@
+# play for loadbalancer
+- hosts: localhost
+  tasks:
+  - name: Install the haproxy software
+    package:
+          name: haproxy
+          state: present
+    register: x
+
+  - name: Configure the Haproxy server
+    template:
+          src: "haproxy.cfg.j2"
+          dest: "/etc/haproxy/haproxy.cfg"
+    notify: restart lb
+
+  handlers:
+  - name: restart lb
+    service:
+           name: "haproxy"
+           state: restarted
+
+
+# play for webserver 
+- hosts: mywebserver
+  tasks:
+  - name: Installing httpd package
+    package:
+         name: httpd
+         state: present
+
+  - name: Copying the content into webpage
+    copy:
+          content: "welcome from {{ ansible_default_ipv4.address }}"
+          dest: /var/www/html/index.html
+
+  - name: Starting the httpd service
+    service:
+          name: httpd
+          state: started
+
+  - name: Permit traffic on port 80/tcp
+    firewalld:
+         port: "80/tcp"
+         permanent: yes
+         state: enabled
+
+
